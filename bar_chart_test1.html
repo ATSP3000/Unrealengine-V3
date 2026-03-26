@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRMC FYDP Funding Gap & POM Request Strategy</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f2;color:#1a1a1a;padding:2rem}
+.page{max-width:960px;margin:0 auto 3rem;background:#fff;border-radius:12px;border:1px solid #e0deda;padding:2rem;page-break-inside:avoid}
+.page-title{font-size:18px;font-weight:500;margin-bottom:6px}
+.page-subtitle{font-size:13px;color:#5f5e5a;margin-bottom:1.5rem}
+.metrics{display:grid;gap:12px;margin-bottom:1.5rem}
+.m4{grid-template-columns:repeat(4,1fr)}
+.m3{grid-template-columns:repeat(3,1fr)}
+.metric{background:#f5f5f2;border-radius:8px;padding:1rem}
+.metric-label{font-size:13px;color:#5f5e5a;margin-bottom:4px}
+.metric-value{font-size:24px;font-weight:500}
+.red{color:#A32D2D}
+.green{color:#0F6E56}
+.amber{color:#854F0B}
+.legend{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:12px;font-size:12px;color:#5f5e5a}
+.legend span{display:flex;align-items:center;gap:4px}
+.dot{width:10px;height:10px;border-radius:2px;display:inline-block}
+.chart-wrap{position:relative;width:100%;height:320px;margin-bottom:1.5rem}
+.section-label{font-size:13px;color:#5f5e5a;margin-bottom:12px;padding-top:1rem;border-top:1px solid #e0deda}
+.source-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.source-card{border-radius:8px;padding:12px}
+.source-card .label{font-size:12px;margin-bottom:2px}
+.source-card .val{font-size:18px;font-weight:500;margin-bottom:2px}
+.source-card .pct{font-size:11px}
+.tier-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.tier-card{border:1px solid #e0deda;border-radius:12px;padding:1rem 1.25rem}
+.tier-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.tier-header span:last-child{font-weight:500;font-size:14px}
+.tier-val{font-size:22px;font-weight:500;margin-bottom:4px}
+.tier-desc{font-size:12px;color:#5f5e5a}
+@media(max-width:700px){.m4,.m3,.source-grid,.tier-grid{grid-template-columns:1fr}}
+@media print{body{background:#fff;padding:0}.page{border:none;box-shadow:none;margin-bottom:2rem}}
+</style>
+</head>
+<body>
+
+<!-- VISUAL 1 -->
+<div class="page">
+  <div class="page-title">How much do we need to fill all the gaps?</div>
+  <div class="page-subtitle">TRMC total uncovered directed funding across the FYDP (FY26–FY30) — illustrative data</div>
+
+  <div class="metrics m4">
+    <div class="metric"><div class="metric-label">Total directed requirements</div><div class="metric-value">$187M</div></div>
+    <div class="metric"><div class="metric-label">Currently programmed</div><div class="metric-value">$128M</div></div>
+    <div class="metric"><div class="metric-label">Total uncovered gap</div><div class="metric-value red">$59M</div></div>
+    <div class="metric"><div class="metric-label">Gap as % of requirement</div><div class="metric-value red">32%</div></div>
+  </div>
+
+  <div class="legend">
+    <span><span class="dot" style="background:#185FA5"></span>Currently programmed</span>
+    <span><span class="dot" style="background:#E24B4A"></span>Uncovered gap (directed but unfunded)</span>
+  </div>
+
+  <div class="chart-wrap"><canvas id="gapChart"></canvas></div>
+
+  <div class="section-label">Gap by requirement source</div>
+  <div class="source-grid">
+    <div class="source-card" style="background:#FCEBEB"><div class="label" style="color:#791F1F">Congressional directs</div><div class="val" style="color:#501313">$26M</div><div class="pct" style="color:#A32D2D">44% of total gap</div></div>
+    <div class="source-card" style="background:#FAEEDA"><div class="label" style="color:#633806">OSD / SecDef directed</div><div class="val" style="color:#412402">$21M</div><div class="pct" style="color:#854F0B">36% of total gap</div></div>
+    <div class="source-card" style="background:#EEEDFE"><div class="label" style="color:#3C3489">Joint Staff requirements</div><div class="val" style="color:#26215C">$12M</div><div class="pct" style="color:#534AB7">20% of total gap</div></div>
+  </div>
+</div>
+
+<!-- VISUAL 2 -->
+<div class="page">
+  <div class="page-title">What should we request in the POM?</div>
+  <div class="page-subtitle">TRMC recommended POM submission strategy by priority tier (FY26–FY30) — illustrative data</div>
+
+  <div class="metrics m3">
+    <div class="metric"><div class="metric-label">Total uncovered gap</div><div class="metric-value">$59M</div></div>
+    <div class="metric"><div class="metric-label">Recommended POM request</div><div class="metric-value green">$45M</div></div>
+    <div class="metric"><div class="metric-label">Accepted risk (deferred)</div><div class="metric-value amber">$14M</div></div>
+  </div>
+
+  <div class="legend">
+    <span><span class="dot" style="background:#A32D2D"></span>Tier 1 — Must fund</span>
+    <span><span class="dot" style="background:#BA7517"></span>Tier 2 — High priority</span>
+    <span><span class="dot" style="background:#1D9E75"></span>Tier 3 — Important</span>
+    <span><span class="dot" style="background:#B4B2A9"></span>Deferred</span>
+  </div>
+
+  <div class="chart-wrap"><canvas id="pomChart"></canvas></div>
+
+  <div class="section-label">Request strategy by tier</div>
+  <div class="tier-grid">
+    <div class="tier-card">
+      <div class="tier-header"><span class="dot" style="background:#A32D2D"></span><span>Tier 1 — must fund</span></div>
+      <div class="tier-val">$24M</div>
+      <div class="tier-desc">Congressional adds, OSW PDM directs, NDAA mandated programs. Non-discretionary.</div>
+    </div>
+    <div class="tier-card">
+      <div class="tier-header"><span class="dot" style="background:#BA7517"></span><span>Tier 2 — high priority</span></div>
+      <div class="tier-val">$14M</div>
+      <div class="tier-desc">Joint Staff validated requirements, critical T&E infrastructure sustainment, and capability gaps tied to major acquisition milestones.</div>
+    </div>
+    <div class="tier-card">
+      <div class="tier-header"><span class="dot" style="background:#1D9E75"></span><span>Tier 3 — important</span></div>
+      <div class="tier-val">$7M</div>
+      <div class="tier-desc">Modernization efforts, range improvements, and workforce enablers. Strong candidates for the Unfunded Priority List if not resourced in POM.</div>
+    </div>
+    <div class="tier-card">
+      <div class="tier-header"><span class="dot" style="background:#B4B2A9"></span><span>Deferred — accepted risk</span></div>
+      <div class="tier-val">$14M</div>
+      <div class="tier-desc">Lower-priority enhancements and stretch goals deferred to out-years or future POM cycles. Documented as risk in POM submission narrative.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+var prog=[24,25,26,27,26], gap=[10,11,13,13,12];
+new Chart(document.getElementById('gapChart'),{type:'bar',data:{labels:['FY26','FY27','FY28','FY29','FY30'],datasets:[{label:'Currently programmed',data:prog,backgroundColor:'#185FA5',borderRadius:{topLeft:0,topRight:0,bottomLeft:4,bottomRight:4},barPercentage:.6},{label:'Uncovered gap',data:gap,backgroundColor:'#E24B4A',borderRadius:{topLeft:4,topRight:4,bottomLeft:0,bottomRight:0},barPercentage:.6}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true,grid:{display:false},border:{display:false}},y:{stacked:true,grid:{color:'rgba(0,0,0,0.06)'},ticks:{callback:function(v){return '$'+v+'M'}},border:{display:false},max:50}},plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.dataset.label+': $'+c.raw+'M'},afterBody:function(items){var i=items[0].dataIndex;return 'Total directed: $'+(prog[i]+gap[i])+'M'}}}}}});
+
+var t1=[4,5,5,5,5],t2=[2,3,3,3,3],t3=[1,1,2,2,1],df=[3,2,3,3,3];
+new Chart(document.getElementById('pomChart'),{type:'bar',data:{labels:['FY26','FY27','FY28','FY29','FY30'],datasets:[{label:'Tier 1 — must fund',data:t1,backgroundColor:'#A32D2D',borderRadius:0,barPercentage:.6},{label:'Tier 2 — high priority',data:t2,backgroundColor:'#BA7517',borderRadius:0,barPercentage:.6},{label:'Tier 3 — important',data:t3,backgroundColor:'#1D9E75',borderRadius:0,barPercentage:.6},{label:'Deferred',data:df,backgroundColor:'#B4B2A9',borderRadius:{topLeft:4,topRight:4,bottomLeft:0,bottomRight:0},barPercentage:.6}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true,grid:{display:false},border:{display:false}},y:{stacked:true,grid:{color:'rgba(0,0,0,0.06)'},ticks:{callback:function(v){return '$'+v+'M'}},border:{display:false},max:16}},plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.dataset.label+': $'+c.raw+'M'},afterBody:function(items){var i=items[0].dataIndex;var p=t1[i]+t2[i]+t3[i];return['POM request: $'+p+'M','Total gap: $'+(p+df[i])+'M']}}}}}});
+</script>
+</body>
+</html>
