@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRMC Strategic Test Capability Dot Chart — Simple Phases</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+  .chart-root {
+    --bg: #ffffff; --tx: #1a1a1a; --tx2: #555; --tx3: #999;
+    --bd: #BFBFBF; --bd-dash: #D0D0D0;
+    --tt-bg: #fff; --tt-bd: #ddd; --tt-shadow: rgba(0,0,0,0.12);
+    --toggle-bg: #eee; --toggle-tx: #333;
+    background: var(--bg); color: var(--tx); padding: 2rem; min-height: 100vh;
+  }
+  .chart-root.dark {
+    --bg: #1a1a1a; --tx: #e5e5e5; --tx2: #aaa; --tx3: #777;
+    --bd: #555; --bd-dash: #444;
+    --tt-bg: #1e1e1e; --tt-bd: #444; --tt-shadow: rgba(0,0,0,0.3);
+    --toggle-bg: #333; --toggle-tx: #ccc;
+  }
+
+  .toggle-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 6px; border: 1px solid var(--bd); background: var(--toggle-bg); color: var(--toggle-tx); font-size: 12px; font-weight: 500; cursor: pointer; margin-bottom: 16px; transition: all 0.2s; }
+  .toggle-btn:hover { opacity: 0.8; }
+  .toggle-btn svg { width: 14px; height: 14px; }
+
+  .wrap { overflow-x: auto; }
+  .outer { position: relative; }
+  .ylabels { position: absolute; left: 0; top: 40px; width: 175px; z-index: 5; }
+  .yl { height: 56px; display: flex; align-items: center; font-size: 12px; color: var(--tx2); padding: 0 8px; text-align: center; justify-content: center; line-height: 1.3; }
+  .grid { margin-left: 184px; margin-right: 8px; }
+
+  .hdr { display: flex; height: 40px; border-bottom: 1px solid var(--bd); }
+  .phase-hdr { flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 11px; font-weight: 500; color: var(--tx2); line-height: 1.3; padding: 0 4px; min-width: 120px; }
+
+  .grd { position: relative; }
+  .row { display: flex; height: 56px; position: relative; }
+  .phase-cell { flex: 1; position: relative; overflow: visible; min-width: 120px; border-left: 1px solid var(--bd); border-top: 1px solid var(--bd); }
+  .row:last-child .phase-cell { border-bottom: 1px solid var(--bd); }
+  .phase-cell:last-child { border-right: 1px solid var(--bd); }
+  .h-line { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed var(--bd-dash); pointer-events: none; }
+
+  .dot { position: absolute; transform: translate(-50%, -50%); width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 7.5px; font-weight: 600; letter-spacing: 0.2px; cursor: pointer; transition: transform 0.15s ease; z-index: 2; border-width: 2px; border-style: solid; }
+  .dot:hover { transform: translate(-50%, -50%) scale(1.25); z-index: 20; }
+  .tt { display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: var(--tt-bg); border: 1px solid var(--tt-bd); border-radius: 8px; padding: 12px 14px; min-width: 260px; max-width: 300px; z-index: 100; pointer-events: none; box-shadow: 0 4px 12px var(--tt-shadow); }
+  .dot:hover .tt { display: block; }
+  .tt-n { font-size: 13px; font-weight: 500; color: var(--tx); margin-bottom: 6px; }
+  .tt-d { font-size: 12px; color: var(--tx2); line-height: 1.5; margin-bottom: 8px; }
+  .tt-r { display: flex; justify-content: space-between; font-size: 11px; color: var(--tx3); }
+  .tt-r + .tt-r { margin-top: 3px; }
+  .tt-img-wrap { width: 100%; height: 120px; border-radius: 6px; overflow: hidden; margin-top: 10px; }
+  .tt-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+</style>
+</head>
+<body>
+<div class="chart-root" id="chartRoot">
+  <button class="toggle-btn" id="themeToggle" onclick="toggleTheme()">
+    <svg id="toggleIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+    <span id="toggleLabel">Dark mode</span>
+  </button>
+  <div class="wrap">
+    <div class="outer">
+      <div class="ylabels" id="yL"></div>
+      <div class="grid">
+        <div class="hdr" id="hdr"></div>
+        <div class="grd" id="grd"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleTheme() {
+  const root = document.getElementById('chartRoot');
+  const icon = document.getElementById('toggleIcon');
+  const label = document.getElementById('toggleLabel');
+  const goDark = !root.classList.contains('dark');
+  root.classList.toggle('dark');
+  icon.innerHTML = goDark
+    ? '<path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/>'
+    : '<circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>';
+  label.textContent = goDark ? 'Light mode' : 'Dark mode';
+  recolorDots();
+}
+
+const palLight = [
+  { bg:'#DCE9F7', tx:'#0C447C', bd:'#3A75AD' },
+  { bg:'#E3E1FC', tx:'#3C3489', bd:'#6558C4' },
+  { bg:'#D4F0E4', tx:'#085041', bd:'#1A8D68' },
+  { bg:'#F7DFD4', tx:'#712B13', bd:'#C05528' },
+  { bg:'#F5E5C0', tx:'#633806', bd:'#A87A18' },
+  { bg:'#F5D4E0', tx:'#72243E', bd:'#A23D60' }
+];
+const palDark = [
+  { bg:'rgba(24,95,165,0.3)', tx:'#85B7EB', bd:'#4488CC' },
+  { bg:'rgba(83,74,183,0.3)', tx:'#AFA9EC', bd:'#7B6FD9' },
+  { bg:'rgba(15,110,86,0.3)', tx:'#5DCAA5', bd:'#2FAD84' },
+  { bg:'rgba(216,90,48,0.3)', tx:'#F0997B', bd:'#E07848' },
+  { bg:'rgba(186,117,23,0.3)', tx:'#FAC775', bd:'#D9A030' },
+  { bg:'rgba(153,53,86,0.3)', tx:'#ED93B1', bd:'#C45A7C' }
+];
+
+function recolorDots() {
+  const dark = document.getElementById('chartRoot').classList.contains('dark');
+  const pal = dark ? palDark : palLight;
+  document.querySelectorAll('.dot').forEach(d => {
+    const ci = parseInt(d.dataset.cap);
+    const c = pal[ci % pal.length];
+    d.style.background = c.bg;
+    d.style.color = c.tx;
+    d.style.borderColor = c.bd;
+  });
+}
+
+const caps = [
+  'Electronic warfare T&E','Hypersonic test infrastructure','Cyber survivability assessment',
+  'Autonomous systems V&V','Space domain awareness T&E','Directed energy test range',
+  'Digital twin integration','Multi-domain C2 testing','AI/ML model evaluation'
+];
+
+const phases = ['Start','Tech Demo','Down Select','Transitional','Acq Alt Completion','Fielded Capability','Major Milestone'];
+const hLines = 2;
+
+// img: set to a .jpg filename in the same directory, e.g. 'gamma.jpg'
+const projects = [
+  { name:'GAMMA',full:'Ground-based Advanced Multi-Mode Assessment',desc:'Next-gen ground test platform for multi-spectral EW threat simulation.',cap:0,phase:1,start:'Oct 2024',end:'Mar 2028',pct:25,img:null },
+  { name:'SIREN',full:'Signal Intelligence Response & Emitter Network',desc:'Distributed EW emitter simulation for contested spectrum testing.',cap:0,phase:1,start:'Mar 2025',end:'Nov 2028',pct:55,img:null },
+  { name:'JAMMER',full:'Joint Airborne Multi-Mode Electronic Response',desc:'Airborne EW pod effectiveness evaluation framework.',cap:0,phase:1,start:'Jan 2024',end:'Aug 2027',pct:82,img:null },
+  { name:'TRIDENT',full:'Tactical Radar Integration & Digital Environment Network Testbed',desc:'Integrated digital radar environment for EW system validation.',cap:0,phase:4,start:'Jan 2023',end:'Sep 2027',pct:72,img:null },
+  { name:'BOLT',full:'Boost-phase Observation & Lethality Tracker',desc:'Hypersonic boost-phase tracking instrumentation upgrade.',cap:1,phase:0,start:'Jul 2025',end:'Dec 2029',pct:15,img:null },
+  { name:'STREAK',full:'Supersonic Tracking & Range Evaluation Asset Kit',desc:'Downrange telemetry modernization for Mach 5+ flight profiles.',cap:1,phase:0,start:'Sep 2025',end:'Feb 2030',pct:62,img:null },
+  { name:'FORGE',full:'Flight Operations Range & Ground Enhancement',desc:'Modernized range infrastructure for hypersonic flight corridors.',cap:1,phase:3,start:'Mar 2023',end:'Jun 2028',pct:58,img:null },
+  { name:'SPECTRE',full:'Secure Penetration & Exploitation Cyber Test Range Extension',desc:'Expanded cyber range for red team adversarial testing.',cap:2,phase:2,start:'Apr 2024',end:'Nov 2027',pct:38,img:null },
+  { name:'PHANTOM',full:'Persistent Hardening & Automated Network Threat Operations Module',desc:'Continuous automated pen-testing for operational networks.',cap:2,phase:2,start:'Jun 2024',end:'Jan 2028',pct:71,img:null },
+  { name:'CIPHER',full:'Cyber Infrastructure Hardening & Evaluation Resource',desc:'Automated vulnerability assessment pipeline for DoD systems.',cap:2,phase:5,start:'Jun 2022',end:'Feb 2026',pct:88,img:null },
+  { name:'ATLAS',full:'Autonomous Test & Logistics Assurance System',desc:'V&V framework for autonomous ground vehicle decision-making.',cap:3,phase:2,start:'Aug 2024',end:'May 2028',pct:27,img:null },
+  { name:'RAVEN',full:'Robotic Autonomous Vehicle Evaluation Network',desc:'Swarm autonomy test environment for air and ground platforms.',cap:3,phase:4,start:'Feb 2023',end:'Oct 2027',pct:35,img:null },
+  { name:'TALON',full:'Tactical Autonomous Logistics & Operations Network',desc:'Autonomous resupply vehicle safety and reliability certification.',cap:3,phase:4,start:'May 2023',end:'Dec 2027',pct:78,img:null },
+  { name:'ORBIT',full:'Operational Readiness & Battlespace Integration Testbed',desc:'Space domain sensor fusion and tracking test capability.',cap:4,phase:1,start:'Nov 2024',end:'Aug 2029',pct:19,img:null },
+  { name:'COSMO',full:'Conjunction & Orbital Safety Monitoring Operations',desc:'Satellite collision avoidance prediction and testing platform.',cap:4,phase:1,start:'Feb 2025',end:'Oct 2029',pct:68,img:null },
+  { name:'ZENITH',full:'Zero-latency Networked ISR Tracking Hub',desc:'Real-time space object cataloging and custody transfer testing.',cap:4,phase:6,start:'Jan 2022',end:'Dec 2025',pct:95,img:null },
+  { name:'PRISM',full:'Photonic Range Instrumentation & Sensor Modernization',desc:'High-energy laser test instrumentation for open-air ranges.',cap:5,phase:3,start:'Sep 2023',end:'Jul 2028',pct:22,img:null },
+  { name:'FLARE',full:'Focused Laser Assessment & Range Experimentation',desc:'Mobile DE test unit for field-level lethality verification.',cap:5,phase:3,start:'Jan 2024',end:'Sep 2028',pct:55,img:null },
+  { name:'ARC',full:'Atmospheric Radiation Characterization',desc:'Beam propagation modeling validation in maritime conditions.',cap:5,phase:3,start:'Nov 2023',end:'May 2028',pct:84,img:null },
+  { name:'BEAM',full:'Battlefield Energy Assessment & Measurement',desc:'Directed energy lethality measurement and effects characterization.',cap:5,phase:0,start:'May 2025',end:'Apr 2030',pct:8,img:null },
+  { name:'NEXUS',full:'Networked Experiment & Unified Simulation',desc:'Digital twin orchestration for live-virtual-constructive test events.',cap:6,phase:2,start:'Mar 2024',end:'Jan 2028',pct:30,img:null },
+  { name:'REPLICA',full:'Real-time Physics & Lifecycle Integration for Complex Assets',desc:'High-fidelity structural digital twin for fatigue-life prediction.',cap:6,phase:2,start:'Jul 2024',end:'Apr 2028',pct:72,img:null },
+  { name:'MIRROR',full:'Model Integration & Real-time Rendering Operations Resource',desc:'Physics-based digital twin for complex system behavior prediction.',cap:6,phase:5,start:'Jul 2022',end:'Jun 2026',pct:81,img:null },
+  { name:'FUSION',full:'Federated Unified Simulation & Integration Operations Network',desc:'Multi-domain C2 interoperability test architecture.',cap:7,phase:1,start:'Oct 2024',end:'Sep 2029',pct:22,img:null },
+  { name:'VORTEX',full:'Virtual Operations & Real-time Tactical Exercise',desc:'Joint C2 stress testing under degraded communications.',cap:7,phase:5,start:'Dec 2022',end:'Aug 2027',pct:42,img:null },
+  { name:'LINK',full:'Layered Interoperable Network Kill-chain',desc:'Cross-domain kill-chain latency and resilience benchmarking.',cap:7,phase:5,start:'Apr 2023',end:'Nov 2027',pct:79,img:null },
+  { name:'SAGE',full:'Systematic AI Governance & Evaluation',desc:'Standardized evaluation framework for ML model readiness levels.',cap:8,phase:3,start:'Jun 2024',end:'Mar 2028',pct:33,img:null },
+  { name:'CORTEX',full:'Computational Operations & Readiness Testing for Explainability',desc:'XAI interpretability scoring for mission-critical AI systems.',cap:8,phase:3,start:'Aug 2024',end:'Jun 2028',pct:70,img:null },
+  { name:'TITAN',full:'Trust & Interpretability Testing for AI Networks',desc:'Adversarial robustness and bias testing for deployed AI systems.',cap:8,phase:6,start:'Jan 2023',end:'Nov 2026',pct:78,img:null }
+];
+
+// Build header
+const hdr = document.getElementById('hdr');
+phases.forEach(p => {
+  const el = document.createElement('div');
+  el.className = 'phase-hdr';
+  el.textContent = p;
+  hdr.appendChild(el);
+});
+
+// Build grid
+const yL = document.getElementById('yL');
+const grd = document.getElementById('grd');
+const pal = palLight;
+
+caps.forEach((cap, ci) => {
+  const yl = document.createElement('div');
+  yl.className = 'yl';
+  yl.textContent = cap;
+  yL.appendChild(yl);
+
+  const row = document.createElement('div');
+  row.className = 'row';
+
+  phases.forEach((_, pi) => {
+    const cell = document.createElement('div');
+    cell.className = 'phase-cell';
+
+    for (let g = 1; g <= hLines; g++) {
+      const line = document.createElement('div');
+      line.className = 'h-line';
+      line.style.top = (g / (hLines + 1) * 100) + '%';
+      cell.appendChild(line);
+    }
+
+    const projs = projects.filter(p => p.cap === ci && p.phase === pi);
+    const count = projs.length;
+
+    projs.forEach((p, idx) => {
+      const c = pal[ci % pal.length];
+      const dot = document.createElement('div');
+      dot.className = 'dot';
+      dot.dataset.cap = ci;
+      dot.style.background = c.bg;
+      dot.style.color = c.tx;
+      dot.style.borderColor = c.bd;
+      const padX = 12;
+      dot.style.left = (padX + (p.pct / 100) * (100 - padX * 2)) + '%';
+      if (count === 1) dot.style.top = '50%';
+      else if (count === 2) dot.style.top = (idx === 0 ? '30%' : '70%');
+      else { const step = 60 / (count - 1); dot.style.top = (20 + idx * step) + '%'; }
+      dot.textContent = p.name;
+
+      const imgHTML = p.img
+        ? '<div class="tt-img-wrap"><img class="tt-img" src="' + p.img + '" alt="' + p.name + '" onerror="this.parentElement.style.display=\'none\'" /></div>'
+        : '';
+
+      const tt = document.createElement('div');
+      tt.className = 'tt';
+      if (parseFloat(dot.style.top) < 40) { tt.style.bottom = 'auto'; tt.style.top = 'calc(100% + 8px)'; }
+      tt.innerHTML =
+        '<div class="tt-n">' + p.name + ' — ' + p.full + '</div>' +
+        '<div class="tt-d">' + p.desc + '</div>' +
+        '<div class="tt-r"><span>Start: ' + p.start + '</span><span>End: ' + p.end + '</span></div>' +
+        '<div class="tt-r"><span>Phase progress</span><span style="font-weight:500;">' + p.pct + '%</span></div>' +
+        imgHTML;
+      dot.appendChild(tt);
+      cell.appendChild(dot);
+    });
+
+    row.appendChild(cell);
+  });
+
+  grd.appendChild(row);
+});
+</script>
+</body>
+</html>
