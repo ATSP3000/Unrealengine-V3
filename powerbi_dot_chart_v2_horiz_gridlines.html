@@ -1,0 +1,173 @@
+
+<style>
+  .wrap { padding: 1rem 0; overflow-x: auto; }
+  .outer { position: relative; }
+  .ylabels { position: absolute; left: 0; top: 0; width: 175px; }
+  .yl { height: 56px; display: flex; align-items: center; font-size: 12.5px; color: var(--color-text-secondary); padding-right: 12px; text-align: right; justify-content: flex-end; line-height: 1.3; }
+  .grid { margin-left: 184px; margin-right: 8px; }
+  .xhdr { display: flex; padding-bottom: 10px; }
+  .xh { flex: 1; text-align: center; font-size: 11px; font-weight: 500; color: var(--color-text-secondary); line-height: 1.3; padding: 0 2px; min-width: 130px; }
+  .grd { position: relative; }
+  .row { display: flex; height: 56px; position: relative; }
+  .cell { flex: 1; position: relative; min-width: 130px; border-left: 0.5px solid var(--color-border-tertiary); border-top: 0.5px solid var(--color-border-tertiary); overflow: visible; }
+  .cell:last-child { border-right: 0.5px solid var(--color-border-tertiary); }
+  .row:last-child .cell { border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .h-line { position: absolute; left: 0; right: 0; height: 0; border-top: 0.5px dashed var(--color-border-tertiary); pointer-events: none; opacity: 0.55; }
+  .dot { position: absolute; transform: translate(-50%, -50%); width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 7.5px; font-weight: 600; letter-spacing: 0.2px; cursor: pointer; transition: transform 0.15s ease; z-index: 2; }
+  .dot:hover { transform: translate(-50%, -50%) scale(1.25); z-index: 20; }
+  .tt { display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 10px 14px; min-width: 250px; z-index: 100; pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.14); }
+  .dot:hover .tt { display: block; }
+  .tt-n { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 6px; }
+  .tt-d { font-size: 12px; color: var(--color-text-secondary); line-height: 1.5; margin-bottom: 8px; }
+  .tt-r { display: flex; justify-content: space-between; font-size: 11px; color: var(--color-text-tertiary); }
+  .tt-r + .tt-r { margin-top: 3px; }
+</style>
+
+<div class="wrap">
+  <div class="outer">
+    <div class="ylabels" id="yL"></div>
+    <div class="grid">
+      <div class="xhdr" id="xH"></div>
+      <div class="grd" id="grd"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+
+const caps = [
+  'Electronic warfare T&E',
+  'Hypersonic test infrastructure',
+  'Cyber survivability assessment',
+  'Autonomous systems V&V',
+  'Space domain awareness T&E',
+  'Directed energy test range',
+  'Digital twin integration',
+  'Multi-domain C2 testing',
+  'AI/ML model evaluation'
+];
+
+const phases = ['Start', 'Tech demo', 'Down select', 'Transitional', 'Acq alt\ncompletion', 'Fielded\ncapability', 'Major\nmilestone'];
+
+const hLines = 2;
+
+const pal = [
+  { bg: isDark ? 'rgba(24,95,165,0.25)' : '#E6F1FB', tx: isDark ? '#85B7EB' : '#0C447C', bd: isDark ? '#185FA566' : '#185FA544' },
+  { bg: isDark ? 'rgba(83,74,183,0.25)' : '#EEEDFE', tx: isDark ? '#AFA9EC' : '#3C3489', bd: isDark ? '#534AB766' : '#534AB744' },
+  { bg: isDark ? 'rgba(15,110,86,0.25)' : '#E1F5EE', tx: isDark ? '#5DCAA5' : '#085041', bd: isDark ? '#0F6E5666' : '#0F6E5644' },
+  { bg: isDark ? 'rgba(216,90,48,0.25)' : '#FAECE7', tx: isDark ? '#F0997B' : '#712B13', bd: isDark ? '#D85A3066' : '#D85A3044' },
+  { bg: isDark ? 'rgba(186,117,23,0.25)' : '#FAEEDA', tx: isDark ? '#FAC775' : '#633806', bd: isDark ? '#BA751766' : '#BA751744' },
+  { bg: isDark ? 'rgba(153,53,86,0.25)' : '#FBEAF0', tx: isDark ? '#ED93B1' : '#72243E', bd: isDark ? '#99355666' : '#99355644' }
+];
+
+const projects = [
+  { name: 'GAMMA', full: 'Ground-based Advanced Multi-Mode Assessment', desc: 'Next-gen ground test platform for multi-spectral EW threat simulation.', cap: 0, phase: 1, start: 'Oct 2024', end: 'Mar 2028', pct: 25 },
+  { name: 'SIREN', full: 'Signal Intelligence Response & Emitter Network', desc: 'Distributed EW emitter simulation for contested spectrum testing.', cap: 0, phase: 1, start: 'Mar 2025', end: 'Nov 2028', pct: 55 },
+  { name: 'JAMMER', full: 'Joint Airborne Multi-Mode Electronic Response', desc: 'Airborne EW pod effectiveness evaluation framework.', cap: 0, phase: 1, start: 'Jan 2024', end: 'Aug 2027', pct: 82 },
+  { name: 'TRIDENT', full: 'Tactical Radar Integration & Digital Environment Network Testbed', desc: 'Integrated digital radar environment for EW system validation.', cap: 0, phase: 4, start: 'Jan 2023', end: 'Sep 2027', pct: 72 },
+  { name: 'BOLT', full: 'Boost-phase Observation & Lethality Tracker', desc: 'Hypersonic boost-phase tracking instrumentation upgrade.', cap: 1, phase: 0, start: 'Jul 2025', end: 'Dec 2029', pct: 15 },
+  { name: 'STREAK', full: 'Supersonic Tracking & Range Evaluation Asset Kit', desc: 'Downrange telemetry modernization for Mach 5+ flight profiles.', cap: 1, phase: 0, start: 'Sep 2025', end: 'Feb 2030', pct: 62 },
+  { name: 'FORGE', full: 'Flight Operations Range & Ground Enhancement', desc: 'Modernized range infrastructure for hypersonic flight corridors.', cap: 1, phase: 3, start: 'Mar 2023', end: 'Jun 2028', pct: 58 },
+  { name: 'SPECTRE', full: 'Secure Penetration & Exploitation Cyber Test Range Extension', desc: 'Expanded cyber range for red team adversarial testing.', cap: 2, phase: 2, start: 'Apr 2024', end: 'Nov 2027', pct: 38 },
+  { name: 'PHANTOM', full: 'Persistent Hardening & Automated Network Threat Operations Module', desc: 'Continuous automated pen-testing for operational networks.', cap: 2, phase: 2, start: 'Jun 2024', end: 'Jan 2028', pct: 71 },
+  { name: 'CIPHER', full: 'Cyber Infrastructure Hardening & Evaluation Resource', desc: 'Automated vulnerability assessment pipeline for DoD systems.', cap: 2, phase: 5, start: 'Jun 2022', end: 'Feb 2026', pct: 88 },
+  { name: 'ATLAS', full: 'Autonomous Test & Logistics Assurance System', desc: 'V&V framework for autonomous ground vehicle decision-making.', cap: 3, phase: 2, start: 'Aug 2024', end: 'May 2028', pct: 27 },
+  { name: 'RAVEN', full: 'Robotic Autonomous Vehicle Evaluation Network', desc: 'Swarm autonomy test environment for air and ground platforms.', cap: 3, phase: 4, start: 'Feb 2023', end: 'Oct 2027', pct: 35 },
+  { name: 'TALON', full: 'Tactical Autonomous Logistics & Operations Network', desc: 'Autonomous resupply vehicle safety and reliability certification.', cap: 3, phase: 4, start: 'May 2023', end: 'Dec 2027', pct: 78 },
+  { name: 'ORBIT', full: 'Operational Readiness & Battlespace Integration Testbed', desc: 'Space domain sensor fusion and tracking test capability.', cap: 4, phase: 1, start: 'Nov 2024', end: 'Aug 2029', pct: 19 },
+  { name: 'COSMO', full: 'Conjunction & Orbital Safety Monitoring Operations', desc: 'Satellite collision avoidance prediction and testing platform.', cap: 4, phase: 1, start: 'Feb 2025', end: 'Oct 2029', pct: 68 },
+  { name: 'ZENITH', full: 'Zero-latency Networked ISR Tracking Hub', desc: 'Real-time space object cataloging and custody transfer testing.', cap: 4, phase: 6, start: 'Jan 2022', end: 'Dec 2025', pct: 95 },
+  { name: 'PRISM', full: 'Photonic Range Instrumentation & Sensor Modernization', desc: 'High-energy laser test instrumentation for open-air ranges.', cap: 5, phase: 3, start: 'Sep 2023', end: 'Jul 2028', pct: 22 },
+  { name: 'FLARE', full: 'Focused Laser Assessment & Range Experimentation', desc: 'Mobile DE test unit for field-level lethality verification.', cap: 5, phase: 3, start: 'Jan 2024', end: 'Sep 2028', pct: 55 },
+  { name: 'ARC', full: 'Atmospheric Radiation Characterization', desc: 'Beam propagation modeling validation in maritime conditions.', cap: 5, phase: 3, start: 'Nov 2023', end: 'May 2028', pct: 84 },
+  { name: 'BEAM', full: 'Battlefield Energy Assessment & Measurement', desc: 'Directed energy lethality measurement and effects characterization.', cap: 5, phase: 0, start: 'May 2025', end: 'Apr 2030', pct: 8 },
+  { name: 'NEXUS', full: 'Networked Experiment & Unified Simulation', desc: 'Digital twin orchestration for live-virtual-constructive test events.', cap: 6, phase: 2, start: 'Mar 2024', end: 'Jan 2028', pct: 30 },
+  { name: 'REPLICA', full: 'Real-time Physics & Lifecycle Integration for Complex Assets', desc: 'High-fidelity structural digital twin for fatigue-life prediction.', cap: 6, phase: 2, start: 'Jul 2024', end: 'Apr 2028', pct: 72 },
+  { name: 'MIRROR', full: 'Model Integration & Real-time Rendering Operations Resource', desc: 'Physics-based digital twin for complex system behavior prediction.', cap: 6, phase: 5, start: 'Jul 2022', end: 'Jun 2026', pct: 81 },
+  { name: 'FUSION', full: 'Federated Unified Simulation & Integration Operations Network', desc: 'Multi-domain C2 interoperability test architecture.', cap: 7, phase: 1, start: 'Oct 2024', end: 'Sep 2029', pct: 22 },
+  { name: 'VORTEX', full: 'Virtual Operations & Real-time Tactical Exercise', desc: 'Joint C2 stress testing under degraded communications.', cap: 7, phase: 5, start: 'Dec 2022', end: 'Aug 2027', pct: 42 },
+  { name: 'LINK', full: 'Layered Interoperable Network Kill-chain', desc: 'Cross-domain kill-chain latency and resilience benchmarking.', cap: 7, phase: 5, start: 'Apr 2023', end: 'Nov 2027', pct: 79 },
+  { name: 'SAGE', full: 'Systematic AI Governance & Evaluation', desc: 'Standardized evaluation framework for ML model readiness levels.', cap: 8, phase: 3, start: 'Jun 2024', end: 'Mar 2028', pct: 33 },
+  { name: 'CORTEX', full: 'Computational Operations & Readiness Testing for Explainability', desc: 'XAI interpretability scoring for mission-critical AI systems.', cap: 8, phase: 3, start: 'Aug 2024', end: 'Jun 2028', pct: 70 },
+  { name: 'TITAN', full: 'Trust & Interpretability Testing for AI Networks', desc: 'Adversarial robustness and bias testing for deployed AI systems.', cap: 8, phase: 6, start: 'Jan 2023', end: 'Nov 2026', pct: 78 }
+];
+
+const xH = document.getElementById('xH');
+phases.forEach(p => {
+  const el = document.createElement('div');
+  el.className = 'xh';
+  el.innerHTML = p.replace(/\n/g, '<br>');
+  xH.appendChild(el);
+});
+
+const yL = document.getElementById('yL');
+const grd = document.getElementById('grd');
+
+caps.forEach((cap, ci) => {
+  const yl = document.createElement('div');
+  yl.className = 'yl';
+  yl.textContent = cap;
+  yL.appendChild(yl);
+
+  const row = document.createElement('div');
+  row.className = 'row';
+
+  phases.forEach((_, pi) => {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+
+    for (let g = 1; g <= hLines; g++) {
+      const line = document.createElement('div');
+      line.className = 'h-line';
+      line.style.top = (g / (hLines + 1) * 100) + '%';
+      cell.appendChild(line);
+    }
+
+    const projs = projects.filter(p => p.cap === ci && p.phase === pi);
+    const count = projs.length;
+
+    projs.forEach((p, idx) => {
+      const c = pal[ci % pal.length];
+      const dot = document.createElement('div');
+      dot.className = 'dot';
+      dot.style.background = c.bg;
+      dot.style.color = c.tx;
+      dot.style.border = '1.5px solid ' + c.bd;
+
+      const padX = 12;
+      const leftPct = padX + (p.pct / 100) * (100 - padX * 2);
+      dot.style.left = leftPct + '%';
+
+      if (count === 1) {
+        dot.style.top = '50%';
+      } else if (count === 2) {
+        dot.style.top = (idx === 0 ? '30%' : '70%');
+      } else {
+        const step = 60 / (count - 1);
+        dot.style.top = (20 + idx * step) + '%';
+      }
+
+      dot.textContent = p.name;
+
+      const tt = document.createElement('div');
+      tt.className = 'tt';
+      if (parseFloat(dot.style.top) < 40) {
+        tt.style.bottom = 'auto';
+        tt.style.top = 'calc(100% + 8px)';
+      }
+      tt.innerHTML =
+        '<div class="tt-n">' + p.name + ' — ' + p.full + '</div>' +
+        '<div class="tt-d">' + p.desc + '</div>' +
+        '<div class="tt-r"><span>Start: ' + p.start + '</span><span>End: ' + p.end + '</span></div>' +
+        '<div class="tt-r"><span>Phase progress</span><span style="font-weight:500;">' + p.pct + '%</span></div>';
+      dot.appendChild(tt);
+      cell.appendChild(dot);
+    });
+
+    row.appendChild(cell);
+  });
+
+  grd.appendChild(row);
+});
+</script>
