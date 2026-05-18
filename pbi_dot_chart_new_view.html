@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRMC Strategic Test Capability Dot Chart</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+  .chart-root {
+    --bg: #ffffff; --tx: #1a1a1a; --tx2: #555; --tx3: #999;
+    --bd: #BFBFBF; --bd-dash: #D0D0D0;
+    --tt-bg: #fff; --tt-bd: #ddd; --tt-shadow: rgba(0,0,0,0.12);
+    --toggle-bg: #eee; --toggle-tx: #333;
+    --active-bg: #3A75AD; --active-tx: #fff;
+    background: var(--bg); color: var(--tx); padding: 2rem; min-height: 100vh;
+  }
+  .chart-root.dark {
+    --bg: #1a1a1a; --tx: #e5e5e5; --tx2: #aaa; --tx3: #777;
+    --bd: #555; --bd-dash: #444;
+    --tt-bg: #1e1e1e; --tt-bd: #444; --tt-shadow: rgba(0,0,0,0.3);
+    --toggle-bg: #333; --toggle-tx: #ccc;
+    --active-bg: #4488CC; --active-tx: #fff;
+  }
+
+  .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 6px; border: 1px solid var(--bd); background: var(--toggle-bg); color: var(--toggle-tx); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+  .btn:hover { opacity: 0.8; }
+  .btn svg { width: 14px; height: 14px; }
+
+  .view-toggle { display: inline-flex; border-radius: 6px; border: 1px solid var(--bd); overflow: hidden; }
+  .view-btn { padding: 6px 16px; font-size: 12px; font-weight: 500; cursor: pointer; border: none; background: var(--toggle-bg); color: var(--toggle-tx); transition: all 0.2s; }
+  .view-btn.active { background: var(--active-bg); color: var(--active-tx); }
+  .view-btn:not(:last-child) { border-right: 1px solid var(--bd); }
+
+  .view-label { font-size: 13px; color: var(--tx2); font-weight: 500; }
+
+  .wrap { overflow: visible; }
+  .outer { position: relative; overflow: visible; }
+  .ylabels { position: absolute; left: 0; width: 175px; z-index: 5; }
+  .yl { height: 56px; display: flex; align-items: center; font-size: 12px; color: var(--tx2); padding: 0 8px; text-align: center; justify-content: center; line-height: 1.3; }
+  .yl.clickable { cursor: pointer; transition: color 0.15s; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 2px; }
+  .yl.clickable:hover { color: var(--tx); text-decoration-color: var(--tx2); }
+  .grid { margin-left: 184px; margin-right: 8px; overflow: visible; }
+
+  .hdr { display: flex; height: 40px; border-bottom: 1px solid var(--bd); }
+  .phase-hdr { flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 11px; font-weight: 500; color: var(--tx2); line-height: 1.3; padding: 0 4px; min-width: 120px; }
+
+  .grd { position: relative; overflow: visible; }
+  .row { display: flex; height: 56px; position: relative; }
+  .row:has(.dot:hover) { z-index: 10; }
+  .phase-cell { flex: 1; position: relative; overflow: visible; min-width: 120px; border-left: 1px solid var(--bd); border-top: 1px solid var(--bd); }
+  .row:last-child .phase-cell { border-bottom: 1px solid var(--bd); }
+  .phase-cell:last-child { border-right: 1px solid var(--bd); }
+  .h-line { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed var(--bd-dash); pointer-events: none; }
+
+  .dot { position: absolute; transform: translate(-50%, -50%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; letter-spacing: 0.2px; cursor: pointer; transition: transform 0.15s ease; z-index: 2; border-width: 2px; border-style: solid; }
+  .dot:hover { z-index: 20; }
+  .dot.sm { width: 30px; height: 30px; font-size: 7.5px; }
+  .dot.sm:hover { transform: translate(-50%, -50%) scale(1.25); }
+  .dot.lg { width: 40px; height: 40px; font-size: 8.5px; }
+  .dot.lg:hover { transform: translate(-50%, -50%) scale(1.2); }
+
+  .tt { display: none; position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: var(--tt-bg); border: 1px solid var(--tt-bd); border-radius: 8px; padding: 12px 14px; min-width: 260px; max-width: 320px; z-index: 100; pointer-events: none; box-shadow: 0 4px 12px var(--tt-shadow); }
+  .dot:hover .tt { display: block; }
+  .tt-n { font-size: 13px; font-weight: 500; color: var(--tx); margin-bottom: 6px; }
+  .tt-d { font-size: 12px; color: var(--tx2); line-height: 1.5; margin-bottom: 8px; }
+  .tt-r { display: flex; justify-content: space-between; font-size: 11px; color: var(--tx3); }
+  .tt-r + .tt-r { margin-top: 3px; }
+  .tt-img-wrap { width: 100%; height: 120px; border-radius: 6px; overflow: hidden; margin-top: 10px; }
+  .tt-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  .pct-axis { position: relative; height: 40px; border-bottom: 1px solid var(--bd); }
+  .pct-tick { position: absolute; bottom: 6px; transform: translateX(-50%); font-size: 10px; font-weight: 500; color: var(--tx3); }
+  .pct-gridline { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed var(--bd-dash); pointer-events: none; }
+  .pct-row { position: relative; height: 56px; border-top: 1px solid var(--bd); border-left: 1px solid var(--bd); border-right: 1px solid var(--bd); overflow: visible; }
+  .pct-row:has(.dot:hover) { z-index: 10; }
+  .pct-row:last-child { border-bottom: 1px solid var(--bd); }
+
+  .time-axis { position: relative; height: 40px; border-bottom: 1px solid var(--bd); }
+  .time-tick { position: absolute; bottom: 6px; transform: translateX(-50%); font-size: 10px; font-weight: 500; color: var(--tx3); }
+  .time-gridline { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed var(--bd-dash); pointer-events: none; }
+  .time-row { position: relative; height: 56px; border-top: 1px solid var(--bd); border-left: 1px solid var(--bd); border-right: 1px solid var(--bd); overflow: visible; }
+  .time-row:has(.time-dot:hover) { z-index: 10; }
+  .time-row:last-child { border-bottom: 1px solid var(--bd); }
+  .time-connector { position: absolute; top: 50%; height: 3px; transform: translateY(-50%); border-radius: 2px; pointer-events: none; opacity: 0.35; }
+  .time-dot { position: absolute; transform: translate(-50%, -50%); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 7px; font-weight: 600; cursor: pointer; transition: transform 0.15s ease; z-index: 2; border: 2px solid; }
+  .time-dot:hover { transform: translate(-50%, -50%) scale(1.25); z-index: 20; }
+  .time-dot:hover .tt { display: block; }
+
+  .phase-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; font-size: 11px; color: var(--tx2); }
+  .phase-legend-item { display: flex; align-items: center; gap: 5px; }
+  .phase-legend-swatch { width: 10px; height: 10px; border-radius: 50%; }
+</style>
+</head>
+<body>
+<div class="chart-root" id="chartRoot">
+  <div class="toolbar">
+    <div class="view-toggle">
+      <button class="view-btn active" id="btnPortfolio" onclick="setView('portfolio')">Portfolio View</button>
+      <button class="view-btn" id="btnProject" onclick="setView('project')">Drill-Through View</button>
+    </div>
+    <div class="view-toggle" id="timeToggle" style="display:none;">
+      <button class="view-btn active" id="btnPhase" onclick="setSubView('phase')">By Phase</button>
+      <button class="view-btn" id="btnTime" onclick="setSubView('time')">Time View</button>
+    </div>
+    <div id="milestoneFilterWrap" style="display:none;">
+      <select id="milestoneFilter" class="btn" style="min-width:200px;font-size:12px;padding:6px 10px;" onchange="setMilestoneFilter(this.value)">
+        <option value="all">All milestones</option>
+      </select>
+    </div>
+    <span class="view-label" id="viewLabel">TRMC-wide milestones</span>
+    <div style="flex:1;"></div>
+    <button class="btn" id="themeToggle" onclick="toggleTheme()">
+      <svg id="toggleIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      <span id="toggleLabel">Dark mode</span>
+    </button>
+  </div>
+  <div class="wrap">
+    <div class="outer">
+      <div class="ylabels" id="yL"></div>
+      <div class="grid">
+        <div class="hdr" id="hdr"></div>
+        <div class="grd" id="grd"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Theme toggle ──
+function toggleTheme() {
+  const root = document.getElementById('chartRoot');
+  const icon = document.getElementById('toggleIcon');
+  const label = document.getElementById('toggleLabel');
+  const goDark = !root.classList.contains('dark');
+  root.classList.toggle('dark');
+  icon.innerHTML = goDark
+    ? '<path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/>'
+    : '<circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>';
+  label.textContent = goDark ? 'Light mode' : 'Dark mode';
+  recolorDots();
+}
+
+const palLight = [
+  { bg:'#DCE9F7', tx:'#0C447C', bd:'#3A75AD' },
+  { bg:'#E3E1FC', tx:'#3C3489', bd:'#6558C4' },
+  { bg:'#D4F0E4', tx:'#085041', bd:'#1A8D68' },
+  { bg:'#F7DFD4', tx:'#712B13', bd:'#C05528' },
+  { bg:'#F5E5C0', tx:'#633806', bd:'#A87A18' },
+  { bg:'#F5D4E0', tx:'#72243E', bd:'#A23D60' }
+];
+const palDark = [
+  { bg:'rgba(24,95,165,0.3)', tx:'#85B7EB', bd:'#4488CC' },
+  { bg:'rgba(83,74,183,0.3)', tx:'#AFA9EC', bd:'#7B6FD9' },
+  { bg:'rgba(15,110,86,0.3)', tx:'#5DCAA5', bd:'#2FAD84' },
+  { bg:'rgba(216,90,48,0.3)', tx:'#F0997B', bd:'#E07848' },
+  { bg:'rgba(186,117,23,0.3)', tx:'#FAC775', bd:'#D9A030' },
+  { bg:'rgba(153,53,86,0.3)', tx:'#ED93B1', bd:'#C45A7C' }
+];
+
+function recolorDots() {
+  const dark = document.getElementById('chartRoot').classList.contains('dark');
+  const pal = dark ? palDark : palLight;
+  document.querySelectorAll('.dot').forEach(d => {
+    const ci = parseInt(d.dataset.cap);
+    const c = pal[ci % pal.length];
+    d.style.background = c.bg;
+    d.style.color = c.tx;
+    d.style.borderColor = c.bd;
+  });
+}
+
+// ── Shared ──
+const phases = ['Start','Tech Demo','Down Select','Transitional','Acq Alt Completion','Fielded Capability','Major Milestone'];
+const hLines = 2;
+
+// ── Portfolio view data ──
+const portfolios = ['HSST','DET','EWT','CTT','C4T','AAIT','SET','SST','AIST'];
+const portfolioFull = {
+  HSST: 'Hypersonic Systems & Survivability Test',
+  DET: 'Directed Energy Test',
+  EWT: 'Electronic Warfare Test',
+  CTT: 'Cyber Test & Training',
+  C4T: 'C4ISR Test',
+  AAIT: 'AI & Autonomy Integration Test',
+  SET: 'Space Evaluation Test',
+  SST: 'Ship & Subsurface Test',
+  AIST: 'Aircraft & Integrated Systems Test'
+};
+
+const milestones = [
+  { name:'MACH-2', full:'Wind Tunnel Reached Mach 2', desc:'HSST range validated Mach 2+ sustained flow for 45-second test windows.', cap:0, start:'Jan 2023', end:'Sep 2026', pct:72, img:null },
+  { name:'GLIDE', full:'Glide Vehicle Tracking Certified', desc:'Downrange telemetry suite certified for hypersonic glide body tracking.', cap:0, start:'Mar 2024', end:'Dec 2027', pct:38, img:null },
+  { name:'HVTM', full:'Hypersonic Vehicle Thermal Model Complete', desc:'Completed thermal modeling for re-entry simulation up to Mach 8.', cap:0, start:'Jul 2025', end:'Jun 2028', pct:14, img:null },
+  { name:'HEL-3', full:'HEL Output Exceeded 300kW', desc:'High-energy laser test article exceeded 300kW sustained output on range.', cap:1, start:'Jun 2023', end:'Mar 2027', pct:58, img:null },
+  { name:'BPROP', full:'Beam Propagation Model Validated', desc:'Atmospheric beam propagation model validated against maritime field data.', cap:1, start:'Jan 2022', end:'Aug 2025', pct:91, img:null },
+  { name:'JCAL', full:'Jammer Calibration Baseline Set', desc:'Established calibration baseline for next-gen airborne jammer pods.', cap:2, start:'Oct 2024', end:'May 2028', pct:26, img:null },
+  { name:'EWSIM', full:'EW Sim Environment IOC', desc:'Electronic warfare simulation environment achieved initial operating capability.', cap:2, start:'Feb 2023', end:'Nov 2026', pct:81, img:null },
+  { name:'RNGE', full:'Red Team Range Expansion Complete', desc:'Expanded cyber red team range capacity from 500 to 2,000 concurrent nodes.', cap:3, start:'Apr 2024', end:'Jan 2028', pct:47, img:null },
+  { name:'ZVULN', full:'Zero-Day Vuln Pipeline Automated', desc:'Fully automated zero-day vulnerability discovery pipeline operational.', cap:3, start:'Aug 2022', end:'Apr 2026', pct:88, img:null },
+  { name:'CPEN', full:'Cyber Pen Test Framework v3', desc:'Third-generation automated penetration testing framework deployed.', cap:3, start:'Jun 2025', end:'Feb 2029', pct:11, img:null },
+  { name:'JADC2', full:'JADC2 Interop Test Complete', desc:'Joint All-Domain C2 interoperability test across 4 service branches completed.', cap:4, start:'Mar 2023', end:'Oct 2027', pct:67, img:null },
+  { name:'LLINK', full:'Low-Latency Link Qualified', desc:'Tactical data link qualified at sub-50ms latency under contested conditions.', cap:4, start:'Nov 2024', end:'Jul 2028', pct:33, img:null },
+  { name:'SWARM', full:'Swarm Autonomy V&V Passed', desc:'Multi-vehicle swarm autonomy framework passed independent V&V review.', cap:5, start:'Sep 2023', end:'Jun 2027', pct:52, img:null },
+  { name:'AITST', full:'AI Trust Scorecard Adopted', desc:'AI trust and interpretability scorecard adopted across 3 programs of record.', cap:5, start:'Jan 2022', end:'Dec 2025', pct:95, img:null },
+  { name:'MLRDL', full:'ML Readiness Level Framework IOC', desc:'Machine learning readiness level assessment framework reached IOC.', cap:5, start:'May 2024', end:'Mar 2028', pct:24, img:null },
+  { name:'ORBIT', full:'LEO Tracking Accuracy 99.2%', desc:'Space domain awareness achieved 99.2% tracking accuracy for LEO objects.', cap:6, start:'Jul 2022', end:'May 2026', pct:84, img:null },
+  { name:'CONJ', full:'Conjunction Assessment Automated', desc:'Fully automated conjunction assessment for GEO belt operational 24/7.', cap:6, start:'Feb 2024', end:'Nov 2027', pct:41, img:null },
+  { name:'SHOCK', full:'Underwater Shock Trial Complete', desc:'Full ship shock qualification trial completed for DDG-class hull.', cap:7, start:'Oct 2023', end:'Aug 2027', pct:63, img:null },
+  { name:'SONAR', full:'Sonar Array Calibration Modernized', desc:'Next-gen towed sonar array calibration range modernization complete.', cap:7, start:'Apr 2025', end:'Jan 2029', pct:18, img:null },
+  { name:'5GEN', full:'5th Gen Integration Test Passed', desc:'5th-gen fighter avionics integration test suite passed all 147 test points.', cap:8, start:'Jun 2022', end:'Mar 2026', pct:89, img:null },
+  { name:'FLTCM', full:'Flight Control Model v4 Certified', desc:'Updated flight control digital twin model certified for operational test.', cap:8, start:'Aug 2024', end:'May 2028', pct:31, img:null },
+  { name:'STORES', full:'Stores Separation Sim Validated', desc:'Weapons stores separation simulation validated against flight test data.', cap:8, start:'Jan 2024', end:'Oct 2027', pct:56, img:null }
+];
+
+// ── Project drill-through data ──
+const capabilities = [
+  'Electronic warfare T&E','Hypersonic test infrastructure','Cyber survivability assessment',
+  'Autonomous systems V&V','Space domain awareness T&E','Directed energy test range',
+  'Digital twin integration','Multi-domain C2 testing','AI/ML model evaluation'
+];
+
+const projects = [
+  { name:'GAMMA',full:'Ground-based Advanced Multi-Mode Assessment',desc:'Next-gen ground test platform for multi-spectral EW threat simulation.',cap:0,phase:1,start:'Oct 2024',end:'Mar 2028',pct:25,img:null },
+  { name:'SIREN',full:'Signal Intelligence Response & Emitter Network',desc:'Distributed EW emitter simulation for contested spectrum testing.',cap:0,phase:1,start:'Mar 2025',end:'Nov 2028',pct:55,img:null },
+  { name:'JAMMER',full:'Joint Airborne Multi-Mode Electronic Response',desc:'Airborne EW pod effectiveness evaluation framework.',cap:0,phase:1,start:'Jan 2024',end:'Aug 2027',pct:82,img:null },
+  { name:'TRIDENT',full:'Tactical Radar Integration & Digital Environment Network Testbed',desc:'Integrated digital radar environment for EW system validation.',cap:0,phase:4,start:'Jan 2023',end:'Sep 2027',pct:72,img:null },
+  { name:'BOLT',full:'Boost-phase Observation & Lethality Tracker',desc:'Hypersonic boost-phase tracking instrumentation upgrade.',cap:1,phase:0,start:'Jul 2025',end:'Dec 2029',pct:15,img:null },
+  { name:'STREAK',full:'Supersonic Tracking & Range Evaluation Asset Kit',desc:'Downrange telemetry modernization for Mach 5+ flight profiles.',cap:1,phase:0,start:'Sep 2025',end:'Feb 2030',pct:62,img:null },
+  { name:'FORGE',full:'Flight Operations Range & Ground Enhancement',desc:'Modernized range infrastructure for hypersonic flight corridors.',cap:1,phase:3,start:'Mar 2023',end:'Jun 2028',pct:58,img:null },
+  { name:'SPECTRE',full:'Secure Penetration & Exploitation Cyber Test Range Extension',desc:'Expanded cyber range for red team adversarial testing.',cap:2,phase:2,start:'Apr 2024',end:'Nov 2027',pct:38,img:null },
+  { name:'PHANTOM',full:'Persistent Hardening & Automated Network Threat Operations Module',desc:'Continuous automated pen-testing for operational networks.',cap:2,phase:2,start:'Jun 2024',end:'Jan 2028',pct:71,img:null },
+  { name:'CIPHER',full:'Cyber Infrastructure Hardening & Evaluation Resource',desc:'Automated vulnerability assessment pipeline for DoD systems.',cap:2,phase:5,start:'Jun 2022',end:'Feb 2026',pct:88,img:null },
+  { name:'ATLAS',full:'Autonomous Test & Logistics Assurance System',desc:'V&V framework for autonomous ground vehicle decision-making.',cap:3,phase:2,start:'Aug 2024',end:'May 2028',pct:27,img:null },
+  { name:'RAVEN',full:'Robotic Autonomous Vehicle Evaluation Network',desc:'Swarm autonomy test environment for air and ground platforms.',cap:3,phase:4,start:'Feb 2023',end:'Oct 2027',pct:35,img:null },
+  { name:'TALON',full:'Tactical Autonomous Logistics & Operations Network',desc:'Autonomous resupply vehicle safety and reliability certification.',cap:3,phase:4,start:'May 2023',end:'Dec 2027',pct:78,img:null },
+  { name:'ORBIT',full:'Operational Readiness & Battlespace Integration Testbed',desc:'Space domain sensor fusion and tracking test capability.',cap:4,phase:1,start:'Nov 2024',end:'Aug 2029',pct:19,img:null },
+  { name:'COSMO',full:'Conjunction & Orbital Safety Monitoring Operations',desc:'Satellite collision avoidance prediction and testing platform.',cap:4,phase:1,start:'Feb 2025',end:'Oct 2029',pct:68,img:null },
+  { name:'ZENITH',full:'Zero-latency Networked ISR Tracking Hub',desc:'Real-time space object cataloging and custody transfer testing.',cap:4,phase:6,start:'Jan 2022',end:'Dec 2025',pct:95,img:null },
+  { name:'PRISM',full:'Photonic Range Instrumentation & Sensor Modernization',desc:'High-energy laser test instrumentation for open-air ranges.',cap:5,phase:3,start:'Sep 2023',end:'Jul 2028',pct:22,img:null },
+  { name:'FLARE',full:'Focused Laser Assessment & Range Experimentation',desc:'Mobile DE test unit for field-level lethality verification.',cap:5,phase:3,start:'Jan 2024',end:'Sep 2028',pct:55,img:null },
+  { name:'ARC',full:'Atmospheric Radiation Characterization',desc:'Beam propagation modeling validation in maritime conditions.',cap:5,phase:3,start:'Nov 2023',end:'May 2028',pct:84,img:null },
+  { name:'BEAM',full:'Battlefield Energy Assessment & Measurement',desc:'Directed energy lethality measurement and effects characterization.',cap:5,phase:0,start:'May 2025',end:'Apr 2030',pct:8,img:null },
+  { name:'NEXUS',full:'Networked Experiment & Unified Simulation',desc:'Digital twin orchestration for live-virtual-constructive test events.',cap:6,phase:2,start:'Mar 2024',end:'Jan 2028',pct:30,img:null },
+  { name:'REPLICA',full:'Real-time Physics & Lifecycle Integration for Complex Assets',desc:'High-fidelity structural digital twin for fatigue-life prediction.',cap:6,phase:2,start:'Jul 2024',end:'Apr 2028',pct:72,img:null },
+  { name:'MIRROR',full:'Model Integration & Real-time Rendering Operations Resource',desc:'Physics-based digital twin for complex system behavior prediction.',cap:6,phase:5,start:'Jul 2022',end:'Jun 2026',pct:81,img:null },
+  { name:'FUSION',full:'Federated Unified Simulation & Integration Operations Network',desc:'Multi-domain C2 interoperability test architecture.',cap:7,phase:1,start:'Oct 2024',end:'Sep 2029',pct:22,img:null },
+  { name:'VORTEX',full:'Virtual Operations & Real-time Tactical Exercise',desc:'Joint C2 stress testing under degraded communications.',cap:7,phase:5,start:'Dec 2022',end:'Aug 2027',pct:42,img:null },
+  { name:'LINK',full:'Layered Interoperable Network Kill-chain',desc:'Cross-domain kill-chain latency and resilience benchmarking.',cap:7,phase:5,start:'Apr 2023',end:'Nov 2027',pct:79,img:null },
+  { name:'SAGE',full:'Systematic AI Governance & Evaluation',desc:'Standardized evaluation framework for ML model readiness levels.',cap:8,phase:3,start:'Jun 2024',end:'Mar 2028',pct:33,img:null },
+  { name:'CORTEX',full:'Computational Operations & Readiness Testing for Explainability',desc:'XAI interpretability scoring for mission-critical AI systems.',cap:8,phase:3,start:'Aug 2024',end:'Jun 2028',pct:70,img:null },
+  { name:'TITAN',full:'Trust & Interpretability Testing for AI Networks',desc:'Adversarial robustness and bias testing for deployed AI systems.',cap:8,phase:6,start:'Jan 2023',end:'Nov 2026',pct:78,img:null }
+];
+
+// ── Milestone-to-project mapping (dummy data) ──
+const milestoneProjects = {
+  'HVTM':   ['BOLT', 'STREAK'],
+  'GLIDE':  ['BOLT', 'STREAK', 'FORGE'],
+  'MACH-2': ['FORGE', 'STREAK'],
+  'HEL-3':  ['PRISM', 'FLARE', 'BEAM'],
+  'BPROP':  ['ARC', 'FLARE'],
+  'JCAL':   ['GAMMA', 'SIREN', 'JAMMER'],
+  'EWSIM':  ['GAMMA', 'SIREN', 'JAMMER', 'TRIDENT'],
+  'RNGE':   ['SPECTRE', 'PHANTOM'],
+  'ZVULN':  ['CIPHER', 'PHANTOM'],
+  'CPEN':   ['SPECTRE', 'CIPHER'],
+  'JADC2':  ['FUSION', 'VORTEX', 'LINK'],
+  'LLINK':  ['FUSION', 'LINK'],
+  'SWARM':  ['ATLAS', 'RAVEN', 'TALON'],
+  'AITST':  ['SAGE', 'CORTEX', 'TITAN'],
+  'MLRDL':  ['SAGE', 'CORTEX'],
+  'ORBIT':  ['ORBIT', 'COSMO', 'ZENITH'],
+  'CONJ':   ['COSMO', 'ZENITH'],
+  'SHOCK':  ['NEXUS', 'REPLICA'],
+  'SONAR':  ['NEXUS', 'MIRROR'],
+  '5GEN':   ['VORTEX', 'LINK', 'TITAN'],
+  'FLTCM':  ['REPLICA', 'MIRROR'],
+  'STORES': ['RAVEN', 'TALON']
+};
+const phaseColors = [
+  '#6B7280', // Start - gray
+  '#3A75AD', // Tech Demo - blue
+  '#6558C4', // Down Select - purple
+  '#BA7517', // Transitional - amber
+  '#1A8D68', // Acq Alt Completion - green
+  '#C05528', // Fielded Capability - orange
+  '#A23D60'  // Major Milestone - rose
+];
+
+// ── View state ──
+let currentView = 'portfolio';
+let currentSubView = 'phase';
+let selectedMilestone = 'all';
+
+function populateMilestoneDropdown() {
+  const sel = document.getElementById('milestoneFilter');
+  sel.innerHTML = '<option value="all">All milestones</option>';
+  milestones.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.name;
+    opt.textContent = m.name + ' — ' + m.full;
+    sel.appendChild(opt);
+  });
+  sel.value = selectedMilestone;
+}
+
+function setMilestoneFilter(val) {
+  selectedMilestone = val;
+  if (val === 'all') {
+    document.getElementById('viewLabel').textContent = currentSubView === 'time'
+      ? 'Projects by timeline'
+      : 'Projects by Portfolio STCs';
+  } else {
+    const m = milestones.find(ms => ms.name === val);
+    document.getElementById('viewLabel').textContent = m
+      ? 'Projects for ' + m.name + ' — ' + m.full
+      : 'Projects by Portfolio STCs';
+  }
+  render();
+}
+
+function drillToMilestone(milestoneName) {
+  currentView = 'project';
+  currentSubView = 'phase';
+  selectedMilestone = milestoneName;
+  document.getElementById('btnPortfolio').classList.remove('active');
+  document.getElementById('btnProject').classList.add('active');
+  document.getElementById('timeToggle').style.display = 'inline-flex';
+  document.getElementById('milestoneFilterWrap').style.display = 'inline-flex';
+  document.getElementById('btnPhase').classList.add('active');
+  document.getElementById('btnTime').classList.remove('active');
+  populateMilestoneDropdown();
+  document.getElementById('milestoneFilter').value = milestoneName;
+  const m = milestones.find(ms => ms.name === milestoneName);
+  document.getElementById('viewLabel').textContent = m
+    ? 'Projects for ' + m.name + ' — ' + m.full
+    : 'Projects by Portfolio STCs';
+  render();
+}
+
+function getFilteredProjects() {
+  if (selectedMilestone === 'all') return projects;
+  const allowed = milestoneProjects[selectedMilestone] || [];
+  return projects.filter(p => allowed.includes(p.name));
+}
+
+function setView(view) {
+  currentView = view;
+  currentSubView = 'phase';
+  selectedMilestone = 'all';
+  document.getElementById('btnPortfolio').classList.toggle('active', view === 'portfolio');
+  document.getElementById('btnProject').classList.toggle('active', view === 'project');
+  document.getElementById('timeToggle').style.display = view === 'project' ? 'inline-flex' : 'none';
+  document.getElementById('milestoneFilterWrap').style.display = view === 'project' ? 'inline-flex' : 'none';
+  document.getElementById('btnPhase').classList.add('active');
+  document.getElementById('btnTime').classList.remove('active');
+  if (view === 'project') populateMilestoneDropdown();
+  document.getElementById('viewLabel').textContent = view === 'portfolio'
+    ? 'TRMC-wide milestones'
+    : 'Projects by Portfolio STCs';
+  render();
+}
+
+function setSubView(sub) {
+  currentSubView = sub;
+  document.getElementById('btnPhase').classList.toggle('active', sub === 'phase');
+  document.getElementById('btnTime').classList.toggle('active', sub === 'time');
+  document.getElementById('viewLabel').textContent = sub === 'time'
+    ? 'Projects by timeline'
+    : 'Projects by Portfolio STCs';
+  render();
+}
+
+// ── Render ──
+function render() {
+  const yL = document.getElementById('yL');
+  const hdr = document.getElementById('hdr');
+  const grd = document.getElementById('grd');
+  yL.innerHTML = '';
+  hdr.innerHTML = '';
+  grd.innerHTML = '';
+
+  const dark = document.getElementById('chartRoot').classList.contains('dark');
+  const pal = dark ? palDark : palLight;
+
+  if (currentView === 'portfolio') {
+    // Percentage axis header
+    hdr.className = 'pct-axis';
+    hdr.style.cssText = '';
+    const ticks = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+    const padX = 4;
+    ticks.forEach(t => {
+      const tick = document.createElement('div');
+      tick.className = 'pct-tick';
+      tick.style.left = (padX + (t / 100) * (100 - padX * 2)) + '%';
+      tick.textContent = t + '%';
+      hdr.appendChild(tick);
+    });
+    yL.style.top = '40px';
+    renderPortfolio(yL, grd, pal);
+  } else if (currentSubView === 'time') {
+    // Time axis header
+    hdr.className = 'time-axis';
+    hdr.style.cssText = '';
+    const padX = 4;
+    // Find time range from all projects
+    const allDates = projects.flatMap(p => [parseDate(p.start), parseDate(p.end)]);
+    const minT = Math.min(...allDates);
+    const maxT = Math.max(...allDates);
+    const yearStart = new Date(minT).getFullYear();
+    const yearEnd = new Date(maxT).getFullYear();
+    for (let y = yearStart; y <= yearEnd + 1; y++) {
+      const t = new Date(y, 0, 1).getTime();
+      const pct = padX + ((t - minT) / (maxT - minT)) * (100 - padX * 2);
+      if (pct >= 0 && pct <= 100) {
+        const tick = document.createElement('div');
+        tick.className = 'time-tick';
+        tick.style.left = pct + '%';
+        tick.textContent = y;
+        hdr.appendChild(tick);
+      }
+    }
+    // Phase legend
+    const legendEl = document.createElement('div');
+    legendEl.className = 'phase-legend';
+    phases.forEach((p, i) => {
+      const item = document.createElement('span');
+      item.className = 'phase-legend-item';
+      item.innerHTML = '<span class="phase-legend-swatch" style="background:' + phaseColors[i] + ';"></span>' + p;
+      legendEl.appendChild(item);
+    });
+    grd.appendChild(legendEl);
+    yL.style.top = '80px'; // offset for header + legend
+    renderTimeline(yL, grd, pal, minT, maxT, padX, yearStart, yearEnd);
+  } else {
+    // Phase column headers
+    hdr.className = 'hdr';
+    hdr.style.cssText = '';
+    phases.forEach(p => {
+      const el = document.createElement('div');
+      el.className = 'phase-hdr';
+      el.textContent = p;
+      hdr.appendChild(el);
+    });
+    yL.style.top = '40px';
+    renderProjects(yL, grd, pal);
+  }
+}
+
+function parseDate(str) {
+  const parts = str.split(' ');
+  const months = { Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11 };
+  return new Date(parseInt(parts[1]), months[parts[0]], 1).getTime();
+}
+
+function renderTimeline(yL, grd, pal, minT, maxT, padX, yearStart, yearEnd) {
+  const dark = document.getElementById('chartRoot').classList.contains('dark');
+  const filtered = getFilteredProjects();
+
+  capabilities.forEach((cap, ci) => {
+    const yl = document.createElement('div');
+    yl.className = 'yl';
+    yl.textContent = cap;
+    yL.appendChild(yl);
+
+    const row = document.createElement('div');
+    row.className = 'time-row';
+
+    // Year gridlines
+    for (let y = yearStart; y <= yearEnd + 1; y++) {
+      const t = new Date(y, 0, 1).getTime();
+      const pct = padX + ((t - minT) / (maxT - minT)) * (100 - padX * 2);
+      if (pct > 0 && pct < 100) {
+        const line = document.createElement('div');
+        line.className = 'time-gridline';
+        line.style.left = pct + '%';
+        row.appendChild(line);
+      }
+    }
+
+    // Horizontal inner gridlines
+    for (let g = 1; g <= hLines; g++) {
+      const line = document.createElement('div');
+      line.className = 'h-line';
+      line.style.top = (g / (hLines + 1) * 100) + '%';
+      row.appendChild(line);
+    }
+
+    const projs = filtered.filter(p => p.cap === ci);
+    const count = projs.length;
+
+    projs.forEach((p, idx) => {
+      const startT = parseDate(p.start);
+      const endT = parseDate(p.end);
+      const startPct = padX + ((startT - minT) / (maxT - minT)) * (100 - padX * 2);
+      const endPct = padX + ((endT - minT) / (maxT - minT)) * (100 - padX * 2);
+      const pc = phaseColors[p.phase] || '#666';
+
+      // Vertical position
+      let topPct;
+      if (count === 1) topPct = 50;
+      else if (count === 2) topPct = idx === 0 ? 30 : 70;
+      else { const step = 60 / (count - 1); topPct = 20 + idx * step; }
+
+      // Connector line
+      const conn = document.createElement('div');
+      conn.className = 'time-connector';
+      conn.style.left = startPct + '%';
+      conn.style.width = (endPct - startPct) + '%';
+      conn.style.top = topPct + '%';
+      conn.style.background = pc;
+      row.appendChild(conn);
+
+      // Start dot
+      const dotS = document.createElement('div');
+      dotS.className = 'time-dot';
+      dotS.dataset.cap = ci;
+      dotS.style.left = startPct + '%';
+      dotS.style.top = topPct + '%';
+      dotS.style.background = dark ? pc + '33' : pc + '22';
+      dotS.style.color = pc;
+      dotS.style.borderColor = pc;
+      dotS.textContent = p.name;
+
+      const ttS = document.createElement('div');
+      ttS.className = 'tt';
+      ttS.innerHTML =
+        '<div class="tt-n">' + p.name + ' — ' + p.full + '</div>' +
+        '<div class="tt-d">' + p.desc + '</div>' +
+        '<div class="tt-r"><span>Start: ' + p.start + '</span><span>End: ' + p.end + '</span></div>' +
+        '<div class="tt-r"><span>Phase</span><span style="font-weight:500;color:' + pc + ';">' + phases[p.phase] + '</span></div>';
+      dotS.appendChild(ttS);
+      row.appendChild(dotS);
+
+      // End dot
+      const dotE = document.createElement('div');
+      dotE.className = 'time-dot';
+      dotE.dataset.cap = ci;
+      dotE.style.left = endPct + '%';
+      dotE.style.top = topPct + '%';
+      dotE.style.background = pc;
+      dotE.style.color = dark ? '#1a1a1a' : '#fff';
+      dotE.style.borderColor = pc;
+      dotE.style.fontSize = '6.5px';
+      dotE.textContent = p.name;
+
+      const ttE = document.createElement('div');
+      ttE.className = 'tt';
+      ttE.innerHTML =
+        '<div class="tt-n">' + p.name + ' — ' + p.full + '</div>' +
+        '<div class="tt-d">' + p.desc + '</div>' +
+        '<div class="tt-r"><span>Start: ' + p.start + '</span><span>End: ' + p.end + '</span></div>' +
+        '<div class="tt-r"><span>Phase</span><span style="font-weight:500;color:' + pc + ';">' + phases[p.phase] + '</span></div>';
+      dotE.appendChild(ttE);
+      row.appendChild(dotE);
+    });
+
+    grd.appendChild(row);
+  });
+}
+
+function renderPortfolio(yL, grd, pal) {
+  const padX = 4;
+  const ticks = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+
+  portfolios.forEach((pName, ci) => {
+    const yl = document.createElement('div');
+    yl.className = 'yl clickable';
+    yl.innerHTML = '<strong>' + pName + '</strong>';
+    yl.title = 'Click to drill into ' + pName + ' projects';
+    yl.addEventListener('click', () => setView('project'));
+    yL.appendChild(yl);
+
+    const row = document.createElement('div');
+    row.className = 'pct-row';
+
+    // Vertical gridlines at each tick
+    ticks.forEach(t => {
+      if (t === 0 || t === 100) return;
+      const line = document.createElement('div');
+      line.className = 'pct-gridline';
+      line.style.left = (padX + (t / 100) * (100 - padX * 2)) + '%';
+      row.appendChild(line);
+    });
+
+    // Horizontal inner gridlines
+    for (let g = 1; g <= hLines; g++) {
+      const line = document.createElement('div');
+      line.className = 'h-line';
+      line.style.top = (g / (hLines + 1) * 100) + '%';
+      row.appendChild(line);
+    }
+
+    // Milestones for this portfolio
+    const ms = milestones.filter(m => m.cap === ci);
+    const count = ms.length;
+
+    ms.forEach((m, idx) => {
+      const c = pal[ci % pal.length];
+      const dot = document.createElement('div');
+      dot.className = 'dot lg';
+      dot.dataset.cap = ci;
+      dot.style.background = c.bg;
+      dot.style.color = c.tx;
+      dot.style.borderColor = c.bd;
+      dot.style.left = (padX + (m.pct / 100) * (100 - padX * 2)) + '%';
+      if (count === 1) dot.style.top = '50%';
+      else if (count === 2) dot.style.top = (idx === 0 ? '30%' : '70%');
+      else { const step = 60 / (count - 1); dot.style.top = (20 + idx * step) + '%'; }
+      dot.textContent = m.name;
+      dot.style.cursor = 'pointer';
+      dot.title = 'Click to drill into ' + m.name + ' projects';
+      dot.addEventListener('click', () => drillToMilestone(m.name));
+
+      const imgHTML = m.img
+        ? '<div class="tt-img-wrap"><img class="tt-img" src="' + m.img + '" alt="' + m.name + '" onerror="this.parentElement.style.display=\'none\'" /></div>'
+        : '';
+
+      const tt = document.createElement('div');
+      tt.className = 'tt';
+      tt.innerHTML =
+        '<div style="font-size:10px;font-weight:500;color:' + c.bd + ';margin-bottom:4px;">' + pName + ' — ' + portfolioFull[pName] + '</div>' +
+        '<div class="tt-n">' + m.name + ' — ' + m.full + '</div>' +
+        '<div class="tt-d">' + m.desc + '</div>' +
+        '<div class="tt-r"><span>Start: ' + m.start + '</span><span>End: ' + m.end + '</span></div>' +
+        '<div class="tt-r"><span>Completion</span><span style="font-weight:500;">' + m.pct + '%</span></div>' +
+        imgHTML;
+      dot.appendChild(tt);
+      row.appendChild(dot);
+    });
+
+    grd.appendChild(row);
+  });
+}
+
+function renderProjects(yL, grd, pal) {
+  const filtered = getFilteredProjects();
+  capabilities.forEach((cap, ci) => {
+    const yl = document.createElement('div');
+    yl.className = 'yl';
+    yl.textContent = cap;
+    yL.appendChild(yl);
+
+    const row = document.createElement('div');
+    row.className = 'row';
+
+    phases.forEach((_, pi) => {
+      const cell = document.createElement('div');
+      cell.className = 'phase-cell';
+      for (let g = 1; g <= hLines; g++) {
+        const line = document.createElement('div');
+        line.className = 'h-line';
+        line.style.top = (g / (hLines + 1) * 100) + '%';
+        cell.appendChild(line);
+      }
+
+      const projs = filtered.filter(p => p.cap === ci && p.phase === pi);
+      const count = projs.length;
+
+      projs.forEach((p, idx) => {
+        const c = pal[ci % pal.length];
+        const dot = document.createElement('div');
+        dot.className = 'dot sm';
+        dot.dataset.cap = ci;
+        dot.style.background = c.bg;
+        dot.style.color = c.tx;
+        dot.style.borderColor = c.bd;
+        const padX = 12;
+        dot.style.left = (padX + (p.pct / 100) * (100 - padX * 2)) + '%';
+        if (count === 1) dot.style.top = '50%';
+        else if (count === 2) dot.style.top = (idx === 0 ? '30%' : '70%');
+        else { const step = 60 / (count - 1); dot.style.top = (20 + idx * step) + '%'; }
+        dot.textContent = p.name;
+
+        const imgHTML = p.img
+          ? '<div class="tt-img-wrap"><img class="tt-img" src="' + p.img + '" alt="' + p.name + '" onerror="this.parentElement.style.display=\'none\'" /></div>'
+          : '';
+
+        const tt = document.createElement('div');
+        tt.className = 'tt';
+        tt.innerHTML =
+          '<div class="tt-n">' + p.name + ' — ' + p.full + '</div>' +
+          '<div class="tt-d">' + p.desc + '</div>' +
+          '<div class="tt-r"><span>Start: ' + p.start + '</span><span>End: ' + p.end + '</span></div>' +
+          '<div class="tt-r"><span>Phase progress</span><span style="font-weight:500;">' + p.pct + '%</span></div>' +
+          imgHTML;
+        dot.appendChild(tt);
+        cell.appendChild(dot);
+      });
+
+      row.appendChild(cell);
+    });
+
+    grd.appendChild(row);
+  });
+}
+
+// Initial render
+render();
+</script>
+</body>
+</html>
